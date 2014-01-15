@@ -75,7 +75,7 @@ abstract class AbstractJoinpoint implements Joinpoint
     static public function sortAdvices(array $advices)
     {
         $sortedAdvices = $advices;
-        usort($sortedAdvices, function(Advice $first, Advice $second) {
+        uasort($sortedAdvices, function(Advice $first, Advice $second) {
             switch (true) {
                 case $first instanceof AdviceBefore && !($second instanceof AdviceBefore):
                     return -1;

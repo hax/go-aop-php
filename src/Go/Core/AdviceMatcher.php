@@ -88,7 +88,7 @@ class AdviceMatcher
             $this->loadAdvisorsAndPointcuts();
         }
 
-        foreach ($this->container->getByTag('advisor') as $advisor) {
+        foreach ($this->container->getByTag('advisor') as $advisorId => $advisor) {
 
             if ($advisor instanceof Aop\PointcutAdvisor) {
 
@@ -97,7 +97,7 @@ class AdviceMatcher
                 if ($isFunctionAdvisor && $pointcut->getClassFilter()->matches($namespace)) {
                     $advices = array_merge_recursive(
                         $advices,
-                        $this->getFunctionAdvicesFromAdvisor($namespace, $advisor, $pointcut)
+                        $this->getFunctionAdvicesFromAdvisor($namespace, $advisor, $advisorId, $pointcut)
                     );
                 }
             }
@@ -132,7 +132,7 @@ class AdviceMatcher
             $originalClass = $class;
         }
 
-        foreach ($this->container->getByTag('advisor') as $advisor) {
+        foreach ($this->container->getByTag('advisor') as $advisorId => $advisor) {
 
             if ($advisor instanceof Aop\PointcutAdvisor) {
 
@@ -140,7 +140,7 @@ class AdviceMatcher
                 if ($pointcut->getClassFilter()->matches($class)) {
                     $classAdvices = array_merge_recursive(
                         $classAdvices,
-                        $this->getAdvicesFromAdvisor($originalClass, $advisor, $pointcut)
+                        $this->getAdvicesFromAdvisor($originalClass, $advisor, $advisorId, $pointcut)
                     );
                 }
             }
@@ -149,7 +149,7 @@ class AdviceMatcher
                 if ($advisor->getClassFilter()->matches($class)) {
                     $classAdvices = array_merge_recursive(
                         $classAdvices,
-                        $this->getIntroductionFromAdvisor($originalClass, $advisor)
+                        $this->getIntroductionFromAdvisor($originalClass, $advisor, $advisorId)
                     );
                 }
             }
@@ -166,7 +166,7 @@ class AdviceMatcher
      *
      * @return array
      */
-    private function getAdvicesFromAdvisor($class, Aop\PointcutAdvisor $advisor, Aop\PointFilter $filter)
+    private function getAdvicesFromAdvisor($class, Aop\PointcutAdvisor $advisor, $advisorId, Aop\PointFilter $filter)
     {
         $classAdvices = array();
 
@@ -178,7 +178,7 @@ class AdviceMatcher
                 /** @var $method ReflectionMethod| */
                 if ($method->getDeclaringClass()->name == $class->name && $filter->matches($method)) {
                     $prefix = $method->isStatic() ? AspectContainer::STATIC_METHOD_PREFIX : AspectContainer::METHOD_PREFIX;
-                    $classAdvices[$prefix][$method->name][] = $advisor->getAdvice();
+                    $classAdvices[$prefix][$method->name][$advisorId] = $advisor->getAdvice();
                 }
             }
         }
@@ -189,7 +189,7 @@ class AdviceMatcher
             foreach ($class->getProperties($mask) as $property) {
                 /** @var $property ReflectionProperty */
                 if ($filter->matches($property)) {
-                    $classAdvices[AspectContainer::PROPERTY_PREFIX][$property->name][] = $advisor->getAdvice();
+                    $classAdvices[AspectContainer::PROPERTY_PREFIX][$property->name][$advisorId] = $advisor->getAdvice();
                 }
             }
         }
@@ -205,7 +205,7 @@ class AdviceMatcher
      *
      * @return array
      */
-    private function getIntroductionFromAdvisor($class, $advisor)
+    private function getIntroductionFromAdvisor($class, $advisor, $advisorId)
     {
         // Do not make introduction for traits
         if ($class->isTrait()) {
@@ -215,9 +215,8 @@ class AdviceMatcher
         /** @var $advice Aop\IntroductionInfo */
         $advice = $advisor->getAdvice();
 
-        return array(
-            AspectContainer::INTRODUCTION_TRAIT_PREFIX => array($advice)
-        );
+        $classAdvices[AspectContainer::INTRODUCTION_TRAIT_PREFIX][$advisorId] = $advice;
+        return $classAdvices;
     }
 
     /**
@@ -249,7 +248,7 @@ class AdviceMatcher
      *
      * @return array
      */
-    private function getFunctionAdvicesFromAdvisor($namespace, $advisor, $pointcut)
+    private function getFunctionAdvicesFromAdvisor($namespace, $advisor, $advisorId, $pointcut)
     {
         $functions = array();
         $advices   = array();
@@ -263,7 +262,7 @@ class AdviceMatcher
 
         foreach ($functions as $functionName=>$function) {
             if ($pointcut->matches($function)) {
-                $advices[AspectContainer::FUNCTION_PREFIX][$functionName][] = $advisor->getAdvice();
+                $advices[AspectContainer::FUNCTION_PREFIX][$functionName][$advisorId] = $advisor->getAdvice();
             }
         }
 
