@@ -8,6 +8,14 @@
 
 namespace Demo\Aspect;
 
+use Go\Aop\Framework\MethodBeforeInterceptor;
+use Go\Aop\Framework\TraitIntroductionInfo;
+use Go\Aop\Intercept\MethodInvocation;
+use Go\Aop\Pointcut\TrueMethodPointcut;
+use Go\Aop\Pointcut\TruePointcut;
+use Go\Aop\Support\DeclareParentsAdvisor;
+use Go\Aop\Support\DefaultPointcutAdvisor;
+use Go\Aop\Support\TruePointFilter;
 use Go\Core\AspectKernel;
 use Go\Core\AspectContainer;
 
@@ -25,8 +33,27 @@ class AwesomeAspectKernel extends AspectKernel
      */
     protected function configureAop(AspectContainer $container)
     {
-        $container->registerAspect(new DebugAspect());
-        $container->registerAspect(new FluentInterfaceAspect());
-        $container->registerAspect(new HealthyLiveAspect());
+        $container->registerAdvisor(
+            new DefaultPointcutAdvisor(
+                new TrueMethodPointcut(),
+                new MethodBeforeInterceptor(function (MethodInvocation $invocation) {
+                    echo "Hello, ", $invocation->getMethod()->name, PHP_EOL;
+                })
+            ),
+            'test'
+        );
+
+        $container->registerAdvisor(
+            new DeclareParentsAdvisor(
+                TruePointFilter::getInstance(),
+                new TraitIntroductionInfo(
+                    'Serializable', 'Demo\Aspect\Introduce\SerializableImpl'
+                )
+            ),
+            'introduce'
+        );
+//        $container->registerAspect(new DebugAspect());
+//        $container->registerAspect(new FluentInterfaceAspect());
+//        $container->registerAspect(new HealthyLiveAspect());
     }
 }
