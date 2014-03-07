@@ -3,6 +3,7 @@ vendor/
 
 # Exclude ide metadatas
 nbproject/
+.idea
 
 # Lock file
 composer.lock
