@@ -17,7 +17,7 @@ include __DIR__ .'/autoload.php';
 AwesomeAspectKernel::getInstance()->init(array(
     'debug'         => true,
     'appDir'        => __DIR__ . '/../demos',
-    'cacheDir'      => __DIR__ . '/cache',
+    'cacheDir'      => __DIR__ . '/../.aop_cache',
 
     'interceptFunctions' => true, // Enable support for function interception (Since 0.4.0)
 ));

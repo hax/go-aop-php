@@ -10,3 +10,6 @@ composer.lock
 
 # PhpUnit working configuration file
 phpunit.xml
+
+# Cache for AOP
+.aop_cache
