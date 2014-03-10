@@ -13,11 +13,13 @@ namespace Go\Core;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
+use ReflectionFunction;
 
 use Go\Aop;
 use Go\Aop\Support\NamespacedReflectionFunction;
 
 use TokenReflection\ReflectionClass as ParsedReflectionClass;
+use TokenReflection\ReflectionFunction as ParsedReflectionFunction;
 use TokenReflection\ReflectionFileNamespace;
 
 /**
@@ -68,6 +70,40 @@ class AdviceMatcher
         $this->isInterceptFunctions = $isInterceptFunctions;
     }
 
+    /**
+     * Return list of advices for function
+     *
+     * @param string|ReflectionFunction|ParsedReflectionFunction $func Function to advise
+     *
+     * @return array|Aop\Advice[] List of advices for class
+     */
+    public function getAdvicesForFunction($func) {
+        if ($this->loadedResources != $this->container->getResources()) {
+            $this->loadAdvisorsAndPointcuts();
+        }
+
+        $funcAdvices = array();
+        if (!$func instanceof ReflectionFunction && !$func instanceof ParsedReflectionFunction) {
+            $func = new ReflectionFunction($func);
+        }
+
+        foreach ($this->container->getByTag('advisor') as $advisor) {
+
+            if ($advisor instanceof Aop\PointcutAdvisor) {
+
+                $pointcut = $advisor->getPointcut();
+                $isFunctionAdvisor = $pointcut->getKind() & Aop\PointFilter::KIND_FUNCTION;
+                if ($isFunctionAdvisor && $pointcut->getClassFilter()->matches($func->getNamespaceName())) {
+                    $funcAdvices = array_merge_recursive(
+                        $funcAdvices,
+                        $this->getUserFunctionAdvicesFromAdvisor($func, $advisor, $pointcut)
+                    );
+                }
+            }
+        }
+
+        return $funcAdvices;
+    }
     /**
      *
      * Returns list of function advices for namespace
@@ -157,6 +193,24 @@ class AdviceMatcher
         }
 
         return $classAdvices;
+    }
+
+    /**
+     * @param $func
+     * @param Aop\PointcutAdvisor $advisor
+     * @param Aop\PointFilter $filter
+     *
+     * @return array
+     */
+    private function getUserFunctionAdvicesFromAdvisor($func, Aop\PointcutAdvisor $advisor, Aop\PointFilter $filter) {
+        $funcAdvices = array();
+
+        $prefix = AspectContainer::FUNCTION_PREFIX;
+        if ($filter->matches($func)) {
+            $funcAdvices[$prefix][$func->name][] = $advisor->getAdvice();
+        }
+
+        return $funcAdvices;
     }
 
     /**

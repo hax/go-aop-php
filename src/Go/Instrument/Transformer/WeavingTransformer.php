@@ -16,11 +16,13 @@ use Go\Core\AdviceMatcher;
 use Go\Core\AspectKernel;
 use Go\Proxy\ClassProxy;
 use Go\Proxy\FunctionProxy;
+use Go\Proxy\UserFunctionProxy;
 use Go\Proxy\TraitProxy;
 
 use TokenReflection\Broker;
 use TokenReflection\Exception\FileProcessingException;
 use TokenReflection\ReflectionClass as ParsedClass;
+use TokenReflection\ReflectionFunction as ParsedFunction;
 use TokenReflection\ReflectionFileNamespace as ParsedFileNamespace;
 
 /**
@@ -110,8 +112,51 @@ class WeavingTransformer extends BaseSourceTransformer
                 }
                 $this->processSingleClass($metadata, $class, $lineOffset);
             }
-            $this->processFunctions($metadata, $namespace);
+
+            foreach ($namespace->getFunctions() as $func) {
+                $this->processUserDefinedFunction($metadata, $func, $lineOffset);
+            }
+
+            $this->processInternalFunctions($metadata, $namespace);
         }
+    }
+
+    /**
+     * Performs weaving of single function if needed
+     *
+     * @param StreamMetaData $metadata Source stream information
+     * @param ParsedFunction $func Instance of function to analyze
+     * @param integer $lineOffset Current offset, will be updated to store the last position
+     */
+    private function processUserDefinedFunction($metadata, $func, &$lineOffset) {
+        $advices = $this->adviceMatcher->getAdvicesForFunction($func);
+
+        if (!$advices) {
+            // Fast return if there aren't any advices for that function
+            return;
+        }
+
+        // Sort advices in advance to keep the correct order in cache
+        foreach ($advices as &$typeAdvices) {
+            foreach ($typeAdvices as &$joinpointAdvices) {
+                if (is_array($joinpointAdvices)) {
+                    $joinpointAdvices = AbstractJoinpoint::sortAdvices($joinpointAdvices);
+                }
+            }
+        }
+
+        // Replace function name with new
+        $lines = explode(PHP_EOL, $metadata->source);
+        $start = $func->getStartLine() + $lineOffset - 1;
+        $len = $func->getEndLine() - $func->getStartLine() + 1;
+        $funcSource = implode(PHP_EOL, array_splice($lines, $start, $len));
+        var_dump($funcSource);
+        $funcDecl = '/(^\s*function\s+)' . $func->getShortName() . '(\s*\()/';
+        $funcNewName = $func->getShortName() . AspectContainer::AOP_PROXIED_SUFFIX;
+        $funcSource = preg_replace($funcDecl, '$1' . $funcNewName . '$2', $funcSource);
+        array_splice($lines, $start, 0, $funcSource);
+        $metadata->source = implode(PHP_EOL, $lines);
+        $metadata->source .= $this->saveFunctionProxyToCache($func, new UserFunctionProxy($func, $advices));
     }
 
     /**
@@ -234,7 +279,7 @@ class WeavingTransformer extends BaseSourceTransformer
      * @param StreamMetaData $metadata Source stream information
      * @param ParsedFileNamespace $namespace Current namespace for file
      */
-    private function processFunctions(StreamMetaData $metadata, $namespace)
+    private function processInternalFunctions(StreamMetaData $metadata, $namespace)
     {
         $functionAdvices = $this->adviceMatcher->getAdvicesForFunctions($namespace);
         if ($functionAdvices && $this->options['cacheDir']) {
@@ -252,6 +297,39 @@ class WeavingTransformer extends BaseSourceTransformer
             }
             $metadata->source .= 'include_once ' . var_export($functionFileName, true) . ';' . PHP_EOL;
         }
+    }
+
+    /**
+     * @param ParsedFunction $originalFunc
+     * @param UserFunctionProxy $proxiedFunc
+     *
+     * @return string
+     */
+    private function saveFunctionProxyToCache($originalFunc, $proxiedFunc) {
+
+        if (empty($this->options['cacheDir'])) {
+            return $proxiedFunc;
+        }
+        $cacheDir = $this->options['cacheDir'] . DIRECTORY_SEPARATOR . '_proxies' . DIRECTORY_SEPARATOR;
+        $fileName = str_replace('\\', DIRECTORY_SEPARATOR, $originalFunc->getName()) . '.php';
+
+        $proxyFileName = $cacheDir . $fileName;
+        $dirname = dirname($proxyFileName);
+
+        if (!file_exists($dirname)) mkdir($dirname, 0770, true);
+
+        $body      = '<?php' . PHP_EOL;
+        $namespace = $originalFunc->getNamespaceName();
+        if ($namespace) {
+            $body .= "namespace {$namespace};" . PHP_EOL . PHP_EOL;
+        }
+        foreach ($originalFunc->getNamespaceAliases() as $alias => $fqdn) {
+            $body .= "use {$fqdn} as {$alias};" . PHP_EOL;
+        }
+        $body .= $proxiedFunc;
+        file_put_contents($proxyFileName, $body);
+
+        return 'include_once ' . var_export($proxyFileName, true) . ';' . PHP_EOL;
     }
 
     /**

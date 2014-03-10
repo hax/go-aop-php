@@ -91,13 +91,14 @@ class PointcutGrammar extends Grammar
                 return $pointcut;
             })
 
+            //confusing!
             ->is(
                 'execution', '(',
                     'NamespacePattern', '(', '*', ')',
                 ')'
             )
             ->call(function(
-                $_, // function node
+                $_, // execution node
                 $_, // (
                 $namespacePattern
             ) {
@@ -158,6 +159,23 @@ class PointcutGrammar extends Grammar
             ->call(function ($_, $_, $classFilter, $_) {
                 $pointcut = new TruePointcut();
                 $pointcut->setClassFilter($classFilter);
+
+                return $pointcut;
+            })
+
+            //experimental
+            ->is('function', '(', 'NamespacePattern', ')')
+            ->call(function(
+                $_, // function node
+                $_, // (
+                $namespacePattern
+            ) {
+                $lastNsPos   = strrpos($namespacePattern, '\\');
+                $namespace   = substr($namespacePattern, 0, $lastNsPos);
+                $funcPattern = substr($namespacePattern, $lastNsPos+1);
+                $nsFilter    = new SimpleNamespaceFilter($namespace);
+                $pointcut    = new FunctionPointcut($funcPattern);
+                $pointcut->setNamespaceFilter($nsFilter);
 
                 return $pointcut;
             })
