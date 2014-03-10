@@ -16,10 +16,11 @@ include __DIR__ .'/autoload.php';
 // Initialize demo aspect container
 AwesomeAspectKernel::getInstance()->init(array(
     'debug'         => true,
-    'appDir'        => __DIR__ . '/../demos',
+    'includePaths'  => [__DIR__ . '/../demos'],
+    'appDir'        => __DIR__,
     'cacheDir'      => __DIR__ . '/../.aop_cache',
 
-    'interceptFunctions' => true, // Enable support for function interception (Since 0.4.0)
+    'interceptFunctions' => false, // Enable support for function interception (Since 0.4.0)
 ));
 
 AnnotationRegistry::registerFile(__DIR__ . '/Demo/Annotation/Cacheable.php');

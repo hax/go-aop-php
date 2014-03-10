@@ -15,7 +15,7 @@ $class   = new ReflectionObject($example);
 
 if ($example instanceof Serializable) {
     echo "Yeah, Example is serializable!", PHP_EOL;
-    var_dump($class->getTraitNames(), $class->getInterfaceNames());
+    //var_dump($class->getTraitNames(), $class->getInterfaceNames());
 } else {
     echo "Ooops, {$class->name} isn't serializable!", PHP_EOL;
 }
