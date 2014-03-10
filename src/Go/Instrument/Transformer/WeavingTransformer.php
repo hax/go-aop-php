@@ -150,7 +150,6 @@ class WeavingTransformer extends BaseSourceTransformer
         $start = $func->getStartLine() + $lineOffset - 1;
         $len = $func->getEndLine() - $func->getStartLine() + 1;
         $funcSource = implode(PHP_EOL, array_splice($lines, $start, $len));
-        var_dump($funcSource);
         $funcDecl = '/(^\s*function\s+)' . $func->getShortName() . '(\s*\()/';
         $funcNewName = $func->getShortName() . AspectContainer::AOP_PROXIED_SUFFIX;
         $funcSource = preg_replace($funcDecl, '$1' . $funcNewName . '$2', $funcSource);
