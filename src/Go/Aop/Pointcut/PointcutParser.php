@@ -20,7 +20,7 @@ class PointcutParser extends Parser
     /**
      * {@inheritDoc}
      */
-    public function __construct(PointcutGrammar $grammar, $debug)
+    public function __construct(PointcutGrammar $grammar, $debug = true)
     {
         $parseTable = include 'PointcutParseTable.php';
         parent::__construct($grammar, $debug ? null : $parseTable);

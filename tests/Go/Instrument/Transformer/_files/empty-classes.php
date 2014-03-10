@@ -1,8 +1,8 @@
 <?php
 // Just some global code
 if (true) {
-    function emptyNsFunction()
+    $emptyNsFunction = function ()
     {
         return pow(pi(), 2);
-    }
+    };
 }

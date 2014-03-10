@@ -66,7 +66,7 @@ class WeavingTransformerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * Do not make anything for code without classes
+     * Do not make anything for code without classes and functions
      */
     public function testEmptyNamespaceInFile()
     {
