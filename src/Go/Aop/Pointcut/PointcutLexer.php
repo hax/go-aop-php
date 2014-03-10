@@ -26,8 +26,10 @@ class PointcutLexer extends SimpleLexer
     public function __construct()
     {
         // General tokens
+        $this->token('call');
         $this->token('execution');
         $this->token('within');
+        $this->token('withincode');
         $this->token('class');
         $this->token('access');
         $this->token('cflowbelow');
