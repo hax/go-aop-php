@@ -158,4 +158,22 @@ class DebugAspect implements Aspect
 
         return $invocation->proceed();
     }
+
+    /**
+     * @param FunctionInvocation $invocation
+     *
+     * @Around("function(Demo\Example\*)")
+     *
+     * @return mixed
+     */
+    public function aroundUserDefinedFunction(FunctionInvocation $invocation) {
+        echo 'Calling Around Interceptor for user-defined function: ',
+        $invocation->getFunction()->getName(),
+        '()',
+        ' with arguments: ',
+        json_encode($invocation->getArguments()),
+        PHP_EOL;
+
+        return $invocation->proceed();
+    }
 }

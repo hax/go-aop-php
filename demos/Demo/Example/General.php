@@ -40,6 +40,7 @@ class General
     public function __construct($message)
     {
         $this->message = $message;
+        output("Create new object with message: $this->message");
     }
 
     /**
@@ -125,4 +126,9 @@ class General
 
         return 'Yeah';
     }
+}
+
+function output($s) {
+    if (PHP_SAPI === 'cli') echo $s;
+    else echo nl2br(htmlspecialchars($s));
 }
